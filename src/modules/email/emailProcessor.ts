@@ -21,7 +21,19 @@ export async function processEmailFindJob(job: Job<EmailFindJobData>) {
 
   if (lead.ownerEmail) return { email: lead.ownerEmail, alreadyHad: true };
 
-  const email = await findEmailByName(lead.businessName);
+  // Extract domain from website URL if the lead has one (rare for our targets,
+  // but Outscraper occasionally returns a site field even for low-quality sites).
+  let domain: string | undefined;
+  const leadWithSite = lead as typeof lead & { site?: string };
+  if (leadWithSite.site) {
+    try {
+      domain = new URL(leadWithSite.site).hostname.replace(/^www\./, "");
+    } catch {
+      // invalid URL — skip domain
+    }
+  }
+
+  const email = await findEmailByName(lead.businessName, domain);
 
   if (!email) return { email: null, found: false };
 

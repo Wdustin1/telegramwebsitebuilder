@@ -25,10 +25,13 @@ export async function processBuildJob(job: Job<BuildJobData>) {
     address: lead.address,
   });
 
-  const slug = lead.businessName
+  // Include leadId in slug to prevent collisions between businesses with the same name.
+  // e.g. "Smith Plumbing" in two different cities won't clobber each other on Vercel.
+  const baseSlug = lead.businessName
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
+  const slug = `${baseSlug}-${leadId}`;
 
   const vercelUrl = await deployToVercel(slug, html);
 

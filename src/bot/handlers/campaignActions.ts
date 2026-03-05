@@ -96,11 +96,12 @@ export async function handleConfirmBuild(
   });
 
   for (const lead of leads) {
-    await buildQueue.add(`build-${lead.id}`, {
-      leadId: lead.id,
-      telegramId,
-      campaignId,
-    });
+    // jobId acts as a deduplication key — duplicate taps won't enqueue twice
+    await buildQueue.add(
+      `build-${lead.id}`,
+      { leadId: lead.id, telegramId, campaignId },
+      { jobId: `build-${lead.id}` }
+    );
   }
 
   await ctx.editMessageText(
@@ -151,11 +152,11 @@ export async function handleConfirmEmails(
   });
 
   for (const lead of leads) {
-    await emailFindQueue.add(`find-email-${lead.id}`, {
-      leadId: lead.id,
-      telegramId,
-      campaignId,
-    });
+    await emailFindQueue.add(
+      `find-email-${lead.id}`,
+      { leadId: lead.id, telegramId, campaignId },
+      { jobId: `email-find-${lead.id}` }
+    );
   }
 
   await ctx.editMessageText(
@@ -211,10 +212,11 @@ export async function handleConfirmCalls(
   });
 
   for (const lead of leads) {
-    await callQueue.add(`call-${lead.id}`, {
-      leadId: lead.id,
-      telegramId,
-    });
+    await callQueue.add(
+      `call-${lead.id}`,
+      { leadId: lead.id, telegramId },
+      { jobId: `call-${lead.id}` }
+    );
   }
 
   await ctx.editMessageText(

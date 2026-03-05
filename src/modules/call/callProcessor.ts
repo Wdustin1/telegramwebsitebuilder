@@ -2,6 +2,7 @@ import { Job } from "bullmq";
 import { prisma } from "../../db/client.js";
 import { makeCall } from "./blandClient.js";
 import { env } from "../../config/env.js";
+import { callQueue } from "../../jobs/queues.js";
 
 export interface CallJobData {
   leadId: number;
@@ -9,36 +10,89 @@ export interface CallJobData {
   retryCount?: number;
 }
 
+/**
+ * Check if it's currently business hours in the configured timezone.
+ * Set CALL_TIMEZONE in env (e.g. "America/Chicago"). Defaults to "America/New_York".
+ */
 export function isBusinessHours(): boolean {
+  const tz = env.CALL_TIMEZONE ?? "America/New_York";
   const now = new Date();
-  const hour = now.getHours();
-  const day = now.getDay();
-  return day >= 1 && day <= 5 && hour >= 9 && hour < 17;
+
+  const hour = parseInt(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      hour: "numeric",
+      hour12: false,
+    }).format(now),
+    10
+  );
+
+  const day = parseInt(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      weekday: "short",
+    })
+      .format(now)
+      .replace(/[^0-9]/g, "") || "0",
+    10
+  );
+
+  // Intl weekday short: Mon=1..Fri=5..Sat=6..Sun=0 — use numeric day instead
+  const dayNum = new Date(
+    now.toLocaleString("en-US", { timeZone: tz })
+  ).getDay(); // 0=Sun, 1=Mon..5=Fri, 6=Sat
+
+  return dayNum >= 1 && dayNum <= 5 && hour >= 9 && hour < 17;
 }
 
 export function msUntilNextBusinessHour(): number {
+  const tz = env.CALL_TIMEZONE ?? "America/New_York";
   const now = new Date();
-  const next = new Date(now);
 
-  if (now.getDay() === 5 && now.getHours() >= 17) {
-    next.setDate(now.getDate() + 3); // Skip to Monday
-  } else if (now.getDay() === 6) {
-    next.setDate(now.getDate() + 2);
-  } else if (now.getDay() === 0) {
-    next.setDate(now.getDate() + 1);
-  } else if (now.getHours() >= 17) {
-    next.setDate(now.getDate() + 1);
+  // Get current time in target timezone
+  const localNow = new Date(now.toLocaleString("en-US", { timeZone: tz }));
+  const next = new Date(localNow);
+
+  const day = localNow.getDay();
+  const hour = localNow.getHours();
+
+  if (day === 6) {
+    // Saturday → Monday 9am
+    next.setDate(localNow.getDate() + 2);
+  } else if (day === 0) {
+    // Sunday → Monday 9am
+    next.setDate(localNow.getDate() + 1);
+  } else if (day === 5 && hour >= 17) {
+    // Friday after 5pm → Monday 9am
+    next.setDate(localNow.getDate() + 3);
+  } else if (hour >= 17) {
+    // Weekday after 5pm → next day 9am
+    next.setDate(localNow.getDate() + 1);
   }
 
   next.setHours(9, 0, 0, 0);
-  return next.getTime() - now.getTime();
+
+  // Convert back to UTC delta
+  const nextUtc = new Date(
+    next.toLocaleString("en-US", { timeZone: "UTC" })
+  );
+
+  return Math.max(0, next.getTime() - localNow.getTime());
 }
 
 export async function processCallJob(job: Job<CallJobData>) {
   if (!isBusinessHours()) {
     const delay = msUntilNextBusinessHour();
-    await job.moveToDelayed(Date.now() + delay);
-    return { delayed: true, reason: "outside business hours" };
+
+    // Re-queue with delay instead of using job.moveToDelayed() which requires
+    // the worker token and can throw in BullMQ v5 when called inside a processor.
+    await callQueue.add(
+      `call-delayed-${job.data.leadId}-${Date.now()}`,
+      job.data,
+      { delay, jobId: `call-bh-${job.data.leadId}` }
+    );
+
+    return { delayed: true, reason: "outside business hours", delayMs: delay };
   }
 
   const { leadId } = job.data;

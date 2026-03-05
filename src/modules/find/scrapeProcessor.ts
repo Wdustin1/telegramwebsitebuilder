@@ -24,7 +24,8 @@ export async function processScrapeJob(job: Job<ScrapeJobData>) {
     status: "NEW" as const,
   }));
 
-  await prisma.lead.createMany({ data: leadsToCreate });
+  // skipDuplicates prevents duplicate leads if a scrape job retries
+  await prisma.lead.createMany({ data: leadsToCreate, skipDuplicates: true });
 
   // Count leads without websites
   const noWebsiteCount = leadsToCreate.filter((l) => !l.hasWebsite).length;

@@ -17,6 +17,8 @@ const envSchema = z.object({
   WEBHOOK_BASE_URL: z.string().url(),
   SENDGRID_WEBHOOK_VERIFICATION_KEY: z.string().min(1).optional(),
   BLAND_WEBHOOK_SECRET: z.string().min(1).optional(),
+  // Timezone for business-hours enforcement on calls (e.g. "America/Chicago")
+  CALL_TIMEZONE: z.string().min(1).optional(),
 });
 
 export const env = envSchema.parse(process.env);
