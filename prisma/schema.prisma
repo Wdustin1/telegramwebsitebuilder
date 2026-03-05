@@ -1,0 +1,124 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id         Int        @id @default(autoincrement())
+  telegramId BigInt     @unique @map("telegram_id")
+  username   String?
+  createdAt  DateTime   @default(now()) @map("created_at")
+  campaigns  Campaign[]
+
+  @@map("users")
+}
+
+model Campaign {
+  id        Int            @id @default(autoincrement())
+  userId    Int            @map("user_id")
+  niche     String
+  city      String
+  status    CampaignStatus @default(SCRAPING)
+  createdAt DateTime       @default(now()) @map("created_at")
+  user      User           @relation(fields: [userId], references: [id])
+  leads     Lead[]
+
+  @@map("campaigns")
+}
+
+enum CampaignStatus {
+  SCRAPING
+  READY
+  IN_PROGRESS
+  COMPLETED
+}
+
+model Lead {
+  id           Int        @id @default(autoincrement())
+  campaignId   Int        @map("campaign_id")
+  businessName String     @map("business_name")
+  phone        String?
+  address      String?
+  hasWebsite   Boolean    @default(false) @map("has_website")
+  ownerEmail   String?    @map("owner_email")
+  status       LeadStatus @default(NEW)
+  createdAt    DateTime   @default(now()) @map("created_at")
+  campaign     Campaign   @relation(fields: [campaignId], references: [id])
+  website      Website?
+  emails       Email[]
+  calls        Call[]
+
+  @@map("leads")
+}
+
+enum LeadStatus {
+  NEW
+  WEBSITE_BUILT
+  EMAILED
+  CALLED
+  RESPONDED
+}
+
+model Website {
+  id          Int      @id @default(autoincrement())
+  leadId      Int      @unique @map("lead_id")
+  vercelUrl   String   @map("vercel_url")
+  htmlContent String   @map("html_content") @db.Text
+  deployedAt  DateTime @default(now()) @map("deployed_at")
+  lead        Lead     @relation(fields: [leadId], references: [id])
+
+  @@map("websites")
+}
+
+model Email {
+  id             Int         @id @default(autoincrement())
+  leadId         Int         @map("lead_id")
+  subject        String
+  body           String      @db.Text
+  status         EmailStatus @default(QUEUED)
+  sequenceNumber Int         @map("sequence_number")
+  sentAt         DateTime?   @map("sent_at")
+  lead           Lead        @relation(fields: [leadId], references: [id])
+
+  @@map("emails")
+}
+
+enum EmailStatus {
+  QUEUED
+  SENT
+  OPENED
+  REPLIED
+  BOUNCED
+}
+
+model Call {
+  id          Int          @id @default(autoincrement())
+  leadId      Int          @map("lead_id")
+  blandCallId String?      @map("bland_call_id")
+  status      CallStatus   @default(QUEUED)
+  duration    Int?
+  transcript  String?      @db.Text
+  outcome     CallOutcome?
+  calledAt    DateTime?    @map("called_at")
+  lead        Lead         @relation(fields: [leadId], references: [id])
+
+  @@map("calls")
+}
+
+enum CallStatus {
+  QUEUED
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum CallOutcome {
+  INTERESTED
+  NOT_INTERESTED
+  VOICEMAIL
+  NO_ANSWER
+}

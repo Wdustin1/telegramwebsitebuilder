@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{BUSINESS_NAME}} — {{NICHE}} in {{CITY}}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #333; }
+    .hero { background: linear-gradient(135deg, #1e3a5f, #2d5f8a); color: white; padding: 80px 20px; text-align: center; }
+    .hero h1 { font-size: 2.5rem; margin-bottom: 16px; }
+    .hero p { font-size: 1.2rem; margin-bottom: 32px; opacity: 0.9; }
+    .hero a { background: #f59e0b; color: #1e3a5f; padding: 16px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 1.1rem; }
+    section { padding: 60px 20px; max-width: 800px; margin: 0 auto; }
+    .services h2, .about h2 { font-size: 1.8rem; margin-bottom: 24px; text-align: center; }
+    .services ul { list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    .services li { background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center; }
+    .about p { line-height: 1.8; text-align: center; }
+    .contact { background: #f8f9fa; padding: 60px 20px; text-align: center; }
+    .contact h2 { font-size: 1.8rem; margin-bottom: 24px; }
+    .contact p { font-size: 1.1rem; margin-bottom: 8px; }
+    .contact a { color: #1e3a5f; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <h1>{{BUSINESS_NAME}}</h1>
+    <p>{{HERO_TAGLINE}}</p>
+    <a href="tel:{{PHONE}}">Call Now — {{PHONE}}</a>
+  </div>
+  <section class="services">
+    <h2>Our Services</h2>
+    <ul>{{SERVICES_LIST}}</ul>
+  </section>
+  <section class="about">
+    <h2>About Us</h2>
+    <p>{{ABOUT_TEXT}}</p>
+  </section>
+  <div class="contact">
+    <h2>Contact Us</h2>
+    <p>Phone: <a href="tel:{{PHONE}}">{{PHONE}}</a></p>
+    <p>Address: {{ADDRESS}}</p>
+  </div>
+</body>
+</html>
