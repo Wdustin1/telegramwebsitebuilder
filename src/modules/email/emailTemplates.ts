@@ -3,6 +3,7 @@ interface EmailContext {
   niche: string;
   city: string;
   websiteUrl: string;
+  unsubscribeUrl: string;
 }
 
 export function getEmailSequence(ctx: EmailContext) {
@@ -18,7 +19,8 @@ export function getEmailSequence(ctx: EmailContext) {
         `${ctx.websiteUrl}\n\n` +
         `It's mobile-friendly and ready to go. If you'd like to keep it, I can set it up on your own domain.\n\n` +
         `Let me know what you think!\n\n` +
-        `Best regards`,
+        `Best regards` +
+        `\n\n---\nIf you don't want to receive these emails, unsubscribe here: ${ctx.unsubscribeUrl}`,
       delay: 0,
     },
     {
@@ -30,7 +32,8 @@ export function getEmailSequence(ctx: EmailContext) {
         `${ctx.websiteUrl}\n\n` +
         `Happy to walk you through it or make any changes. ` +
         `No obligation at all.\n\n` +
-        `Best regards`,
+        `Best regards` +
+        `\n\n---\nIf you don't want to receive these emails, unsubscribe here: ${ctx.unsubscribeUrl}`,
       delay: 3 * 24 * 60 * 60 * 1000, // 3 days in ms
     },
     {
@@ -42,7 +45,8 @@ export function getEmailSequence(ctx: EmailContext) {
         `${ctx.websiteUrl}\n\n` +
         `If you're interested in keeping it, just reply to this email. ` +
         `Otherwise, no worries at all.\n\n` +
-        `Best regards`,
+        `Best regards` +
+        `\n\n---\nIf you don't want to receive these emails, unsubscribe here: ${ctx.unsubscribeUrl}`,
       delay: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
     },
   ];

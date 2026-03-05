@@ -5,6 +5,7 @@ import { statusCommand } from "./bot/commands/status.js";
 import { startWorkers } from "./jobs/workers.js";
 import { startWebhookServer } from "./webhooks/server.js";
 import { setBlandWebhookBot } from "./webhooks/blandWebhook.js";
+import { setSendGridWebhookBot } from "./webhooks/sendgridWebhook.js";
 import {
   handleViewLeads,
   handleBuildWebsites,
@@ -76,11 +77,29 @@ async function main() {
   });
 
   // Start workers with bot for notifications
-  startWorkers(bot);
+  const workers = startWorkers(bot);
 
   // Start webhook server
   setBlandWebhookBot(bot);
-  startWebhookServer(3000);
+  setSendGridWebhookBot(bot);
+  const webhookServer = startWebhookServer(3000);
+
+  // Graceful shutdown
+  async function shutdown() {
+    console.log("Shutting down gracefully...");
+    bot.stop();
+    for (const worker of workers) {
+      await worker.close();
+    }
+    webhookServer.close();
+    const { prisma } = await import("./db/client.js");
+    await prisma.$disconnect();
+    console.log("Shutdown complete");
+    process.exit(0);
+  }
+
+  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", shutdown);
 
   // Start bot
   bot.start();

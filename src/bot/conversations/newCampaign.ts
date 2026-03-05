@@ -61,14 +61,25 @@ export async function newCampaignConversation(
     return;
   }
 
+  // Guard against missing user context
+  if (!ctx.from) {
+    await ctx.reply("Unable to identify user. Please try again.");
+    return;
+  }
+
   // Create campaign in DB
   const user = await prisma.user.findUnique({
-    where: { telegramId: ctx.from!.id },
+    where: { telegramId: ctx.from.id },
   });
+
+  if (!user) {
+    await ctx.reply("Please run /start first.");
+    return;
+  }
 
   const campaign = await prisma.campaign.create({
     data: {
-      userId: user!.id,
+      userId: user.id,
       niche,
       city,
       status: "SCRAPING",
@@ -84,6 +95,6 @@ export async function newCampaignConversation(
     campaignId: campaign.id,
     niche,
     city,
-    telegramId: ctx.from!.id,
+    telegramId: ctx.from.id,
   });
 }

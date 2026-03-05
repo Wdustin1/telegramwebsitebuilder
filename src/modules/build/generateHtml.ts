@@ -1,7 +1,19 @@
 import { readFileSync } from "fs";
-import { join } from "path";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 import OpenAI from "openai";
 import { env } from "../../config/env.js";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+export function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
 
@@ -21,7 +33,7 @@ interface GeneratedCopy {
 
 export async function generateWebsiteHtml(lead: LeadData): Promise<string> {
   const template = readFileSync(
-    join(process.cwd(), "templates", "home-service.html"),
+    join(__dirname, "..", "..", "..", "templates", "home-service.html"),
     "utf-8"
   );
 
@@ -46,18 +58,18 @@ export async function generateWebsiteHtml(lead: LeadData): Promise<string> {
   );
 
   const servicesHtml = copy.services
-    .map((s) => `<li>${s}</li>`)
+    .map((s) => `<li>${escapeHtml(s)}</li>`)
     .join("\n      ");
 
   const html = template
-    .replaceAll("{{BUSINESS_NAME}}", lead.businessName)
-    .replaceAll("{{NICHE}}", lead.niche)
-    .replaceAll("{{CITY}}", lead.city)
-    .replaceAll("{{HERO_TAGLINE}}", copy.heroTagline)
-    .replaceAll("{{PHONE}}", lead.phone ?? "Contact Us")
-    .replaceAll("{{ADDRESS}}", lead.address ?? lead.city)
+    .replaceAll("{{BUSINESS_NAME}}", escapeHtml(lead.businessName))
+    .replaceAll("{{NICHE}}", escapeHtml(lead.niche))
+    .replaceAll("{{CITY}}", escapeHtml(lead.city))
+    .replaceAll("{{HERO_TAGLINE}}", escapeHtml(copy.heroTagline))
+    .replaceAll("{{PHONE}}", escapeHtml(lead.phone ?? "Contact Us"))
+    .replaceAll("{{ADDRESS}}", escapeHtml(lead.address ?? lead.city))
     .replaceAll("{{SERVICES_LIST}}", servicesHtml)
-    .replaceAll("{{ABOUT_TEXT}}", copy.aboutText);
+    .replaceAll("{{ABOUT_TEXT}}", escapeHtml(copy.aboutText));
 
   return html;
 }

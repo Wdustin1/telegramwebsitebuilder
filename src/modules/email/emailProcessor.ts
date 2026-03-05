@@ -1,5 +1,6 @@
 import { Job } from "bullmq";
 import { prisma } from "../../db/client.js";
+import { env } from "../../config/env.js";
 import { findEmailByName } from "./hunterLookup.js";
 import { sendEmail } from "./sendEmail.js";
 import { getEmailSequence } from "./emailTemplates.js";
@@ -61,6 +62,7 @@ export async function processEmailSendJob(job: Job<EmailSendJobData>) {
     niche: lead.campaign.niche,
     city: lead.campaign.city,
     websiteUrl: lead.website.vercelUrl,
+    unsubscribeUrl: `${env.WEBHOOK_BASE_URL}/unsubscribe?email=${encodeURIComponent(lead.ownerEmail)}`,
   });
 
   const template = sequence.find((s) => s.sequenceNumber === sequenceNumber);

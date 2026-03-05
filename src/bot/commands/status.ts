@@ -33,26 +33,25 @@ export async function statusCommand(ctx: BotContext) {
   let message = "Your Campaigns:\n\n";
 
   for (const campaign of campaigns) {
-    const leads = await prisma.lead.findMany({
+    const statusCounts = await prisma.lead.groupBy({
+      by: ["status"],
       where: { campaignId: campaign.id },
+      _count: { status: true },
     });
 
-    const websitesBuilt = leads.filter(
-      (l) => l.status !== "NEW"
-    ).length;
-    const emailed = leads.filter(
-      (l) => l.status === "EMAILED" || l.status === "CALLED" || l.status === "RESPONDED"
-    ).length;
-    const called = leads.filter(
-      (l) => l.status === "CALLED" || l.status === "RESPONDED"
-    ).length;
-    const responded = leads.filter(
-      (l) => l.status === "RESPONDED"
-    ).length;
+    const countMap = Object.fromEntries(
+      statusCounts.map((s) => [s.status, s._count.status])
+    );
+
+    const totalLeads = campaign._count.leads;
+    const websitesBuilt = totalLeads - (countMap["NEW"] ?? 0);
+    const emailed = (countMap["EMAILED"] ?? 0) + (countMap["CALLED"] ?? 0) + (countMap["RESPONDED"] ?? 0);
+    const called = (countMap["CALLED"] ?? 0) + (countMap["RESPONDED"] ?? 0);
+    const responded = countMap["RESPONDED"] ?? 0;
 
     message +=
       `${campaign.niche} in ${campaign.city} [${campaign.status}]\n` +
-      `  Leads: ${campaign._count.leads} | Sites: ${websitesBuilt} | ` +
+      `  Leads: ${totalLeads} | Sites: ${websitesBuilt} | ` +
       `Emails: ${emailed} | Calls: ${called} | Responses: ${responded}\n\n`;
   }
 

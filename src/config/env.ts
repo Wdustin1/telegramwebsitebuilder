@@ -15,6 +15,8 @@ const envSchema = z.object({
   SENDGRID_FROM_EMAIL: z.string().email(),
   BLAND_API_KEY: z.string().min(1),
   WEBHOOK_BASE_URL: z.string().url(),
+  SENDGRID_WEBHOOK_VERIFICATION_KEY: z.string().min(1).optional(),
+  BLAND_WEBHOOK_SECRET: z.string().min(1).optional(),
 });
 
 export const env = envSchema.parse(process.env);

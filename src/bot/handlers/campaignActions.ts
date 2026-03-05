@@ -1,11 +1,27 @@
 import { InlineKeyboard } from "grammy";
 import { BotContext } from "../bot.js";
 import { prisma } from "../../db/client.js";
-import { buildQueue } from "../../jobs/queues.js";
-import { emailFindQueue, emailSendQueue } from "../../jobs/queues.js";
-import { callQueue } from "../../jobs/queues.js";
+import { buildQueue, emailFindQueue, callQueue } from "../../jobs/queues.js";
+
+async function verifyCampaignOwnership(ctx: BotContext, campaignId: number): Promise<boolean> {
+  if (!ctx.from) return false;
+
+  const campaign = await prisma.campaign.findUnique({
+    where: { id: campaignId },
+    include: { user: true },
+  });
+
+  if (!campaign || campaign.user.telegramId !== BigInt(ctx.from.id)) {
+    await ctx.reply("Campaign not found or access denied.");
+    return false;
+  }
+
+  return true;
+}
 
 export async function handleViewLeads(ctx: BotContext, campaignId: number) {
+  if (!(await verifyCampaignOwnership(ctx, campaignId))) return;
+
   const leads = await prisma.lead.findMany({
     where: { campaignId, hasWebsite: false },
     take: 10,
@@ -45,6 +61,8 @@ export async function handleBuildWebsites(
   ctx: BotContext,
   campaignId: number
 ) {
+  if (!(await verifyCampaignOwnership(ctx, campaignId))) return;
+
   const leads = await prisma.lead.findMany({
     where: { campaignId, hasWebsite: false, status: "NEW" },
   });
@@ -68,6 +86,11 @@ export async function handleConfirmBuild(
   ctx: BotContext,
   campaignId: number
 ) {
+  if (!(await verifyCampaignOwnership(ctx, campaignId))) return;
+
+  const telegramId = ctx.from?.id;
+  if (!telegramId) return;
+
   const leads = await prisma.lead.findMany({
     where: { campaignId, hasWebsite: false, status: "NEW" },
   });
@@ -75,7 +98,7 @@ export async function handleConfirmBuild(
   for (const lead of leads) {
     await buildQueue.add(`build-${lead.id}`, {
       leadId: lead.id,
-      telegramId: ctx.from!.id,
+      telegramId,
       campaignId,
     });
   }
@@ -89,6 +112,8 @@ export async function handleStartEmails(
   ctx: BotContext,
   campaignId: number
 ) {
+  if (!(await verifyCampaignOwnership(ctx, campaignId))) return;
+
   const leads = await prisma.lead.findMany({
     where: { campaignId, status: "WEBSITE_BUILT" },
   });
@@ -116,6 +141,11 @@ export async function handleConfirmEmails(
   ctx: BotContext,
   campaignId: number
 ) {
+  if (!(await verifyCampaignOwnership(ctx, campaignId))) return;
+
+  const telegramId = ctx.from?.id;
+  if (!telegramId) return;
+
   const leads = await prisma.lead.findMany({
     where: { campaignId, status: "WEBSITE_BUILT" },
   });
@@ -123,7 +153,7 @@ export async function handleConfirmEmails(
   for (const lead of leads) {
     await emailFindQueue.add(`find-email-${lead.id}`, {
       leadId: lead.id,
-      telegramId: ctx.from!.id,
+      telegramId,
       campaignId,
     });
   }
@@ -137,6 +167,8 @@ export async function handleStartCalls(
   ctx: BotContext,
   campaignId: number
 ) {
+  if (!(await verifyCampaignOwnership(ctx, campaignId))) return;
+
   const leads = await prisma.lead.findMany({
     where: {
       campaignId,
@@ -165,6 +197,11 @@ export async function handleConfirmCalls(
   ctx: BotContext,
   campaignId: number
 ) {
+  if (!(await verifyCampaignOwnership(ctx, campaignId))) return;
+
+  const telegramId = ctx.from?.id;
+  if (!telegramId) return;
+
   const leads = await prisma.lead.findMany({
     where: {
       campaignId,
@@ -176,7 +213,7 @@ export async function handleConfirmCalls(
   for (const lead of leads) {
     await callQueue.add(`call-${lead.id}`, {
       leadId: lead.id,
-      telegramId: ctx.from!.id,
+      telegramId,
     });
   }
 

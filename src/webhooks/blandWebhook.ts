@@ -1,6 +1,7 @@
 import { prisma } from "../db/client.js";
 import { Bot } from "grammy";
 import { BotContext } from "../bot/bot.js";
+import { callQueue } from "../jobs/queues.js";
 
 let botInstance: Bot<BotContext>;
 
@@ -50,6 +51,26 @@ export async function handleBlandWebhook(payload: BlandWebhookPayload) {
       outcome,
     },
   });
+
+  // Retry logic for voicemail/no-answer
+  if (outcome === "VOICEMAIL" || outcome === "NO_ANSWER") {
+    const callCount = await prisma.call.count({
+      where: { leadId: call.leadId },
+    });
+
+    const maxRetries = outcome === "VOICEMAIL" ? 1 : 2;
+
+    if (callCount <= maxRetries) {
+      await callQueue.add(
+        `call-retry-${call.leadId}-${callCount}`,
+        {
+          leadId: call.leadId,
+          telegramId: Number(call.lead.campaign.user.telegramId),
+        },
+        { delay: 60 * 60 * 1000 } // 1 hour
+      );
+    }
+  }
 
   if (outcome === "INTERESTED") {
     await prisma.lead.update({

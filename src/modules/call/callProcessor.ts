@@ -6,16 +6,17 @@ import { env } from "../../config/env.js";
 export interface CallJobData {
   leadId: number;
   telegramId: number;
+  retryCount?: number;
 }
 
-function isBusinessHours(): boolean {
+export function isBusinessHours(): boolean {
   const now = new Date();
   const hour = now.getHours();
   const day = now.getDay();
   return day >= 1 && day <= 5 && hour >= 9 && hour < 17;
 }
 
-function msUntilNextBusinessHour(): number {
+export function msUntilNextBusinessHour(): number {
   const now = new Date();
   const next = new Date(now);
 
@@ -60,7 +61,9 @@ export async function processCallJob(job: Job<CallJobData>) {
   const result = await makeCall({
     phoneNumber: lead.phone,
     prompt,
-    webhookUrl: `${env.WEBHOOK_BASE_URL}/webhooks/bland`,
+    webhookUrl: env.BLAND_WEBHOOK_SECRET
+      ? `${env.WEBHOOK_BASE_URL}/webhooks/bland?secret=${env.BLAND_WEBHOOK_SECRET}`
+      : `${env.WEBHOOK_BASE_URL}/webhooks/bland`,
   });
 
   await prisma.call.create({
