@@ -7,6 +7,10 @@ import { processBuildJob, BuildJobData } from "../modules/build/buildProcessor.j
 import { processEmailFindJob, processEmailSendJob, EmailFindJobData, EmailSendJobData } from "../modules/email/emailProcessor.js";
 import { processCallJob, CallJobData } from "../modules/call/callProcessor.js";
 import { BotContext } from "../bot/bot.js";
+import { logger } from "../lib/logger.js";
+import { esc } from "../lib/html.js";
+
+const log = logger.child({ module: "workers" });
 
 export function startWorkers(bot: Bot<BotContext>) {
   const scrapeWorker = new Worker<ScrapeJobData>(
@@ -17,26 +21,29 @@ export function startWorkers(bot: Bot<BotContext>) {
 
   scrapeWorker.on("completed", async (job) => {
     if (!job) return;
+    log.info({ jobId: job.id, jobName: job.name }, "job_completed");
     const { telegramId } = job.data;
     const result = job.returnvalue;
     const keyboard = new InlineKeyboard()
-      .text("View Leads", `view_leads_${job.data.campaignId}`)
-      .text("Build Websites", `build_websites_${job.data.campaignId}`);
+      .text("📋 View Leads", `view_leads_${job.data.campaignId}`)
+      .text("🔨 Build Websites", `build_websites_${job.data.campaignId}`);
 
     await bot.api.sendMessage(
       telegramId,
-      `Scraping complete!\n\n` +
-        `Found ${result.totalFound} businesses.\n` +
-        `${result.withoutWebsite} don't have websites.`,
-      { reply_markup: keyboard }
+      `🎯 <b>Scraping complete!</b>\n\n` +
+        `👥 Found <b>${result.totalFound}</b> businesses\n` +
+        `🚫 <b>${result.withoutWebsite}</b> don't have websites`,
+      { reply_markup: keyboard, parse_mode: "HTML" }
     );
   });
 
   scrapeWorker.on("failed", async (job) => {
     if (!job) return;
+    log.error({ jobId: job.id, jobName: job.name, reason: job.failedReason }, "job_failed");
     await bot.api.sendMessage(
       job.data.telegramId,
-      `Scraping failed: ${job.failedReason}. Please try again.`
+      `❌ <b>Scraping failed</b>\n\n${esc(job.failedReason ?? "Unknown error")}. Please try again.`,
+      { parse_mode: "HTML" }
     );
   });
 
@@ -48,19 +55,24 @@ export function startWorkers(bot: Bot<BotContext>) {
 
   buildWorker.on("completed", async (job) => {
     if (!job) return;
+    log.info({ jobId: job.id, jobName: job.name }, "job_completed");
     const { telegramId } = job.data;
     const result = job.returnvalue;
     await bot.api.sendMessage(
       telegramId,
-      `Website built for lead #${result.leadId}: ${result.vercelUrl}`
+      `🌐 <b>Website built!</b>\n\n` +
+        `Lead #${result.leadId}: <a href="${esc(result.vercelUrl)}">${esc(result.vercelUrl)}</a>`,
+      { parse_mode: "HTML" }
     );
   });
 
   buildWorker.on("failed", async (job) => {
     if (!job) return;
+    log.error({ jobId: job.id, jobName: job.name, reason: job.failedReason }, "job_failed");
     await bot.api.sendMessage(
       job.data.telegramId,
-      `Website build failed for lead #${job.data.leadId}: ${job.failedReason}`
+      `❌ <b>Website build failed</b> for lead #${job.data.leadId}\n\n${esc(job.failedReason ?? "Unknown error")}`,
+      { parse_mode: "HTML" }
     );
   });
 
@@ -72,6 +84,7 @@ export function startWorkers(bot: Bot<BotContext>) {
 
   emailFindWorker.on("completed", async (job) => {
     if (!job) return;
+    log.info({ jobId: job.id, jobName: job.name }, "job_completed");
     const result = job.returnvalue;
     if (result.email) {
       await emailSendQueue.add(`send-email-${job.data.leadId}-1`, {
@@ -93,11 +106,13 @@ export function startWorkers(bot: Bot<BotContext>) {
 
   emailSendWorker.on("completed", async (job) => {
     if (!job) return;
+    log.info({ jobId: job.id, jobName: job.name }, "job_completed");
     const result = job.returnvalue;
     if (result.sent) {
       await bot.api.sendMessage(
         job.data.telegramId,
-        `Email #${result.sequenceNumber} sent to lead #${job.data.leadId}`
+        `📧 <b>Email sent!</b>\n\nSequence #${result.sequenceNumber} → Lead #${job.data.leadId}`,
+        { parse_mode: "HTML" }
       );
     }
   });
@@ -119,13 +134,15 @@ export function startWorkers(bot: Bot<BotContext>) {
 
   callWorker.on("failed", async (job) => {
     if (!job) return;
+    log.error({ jobId: job.id, jobName: job.name, reason: job.failedReason }, "job_failed");
     await bot.api.sendMessage(
       job.data.telegramId,
-      `Call failed for lead #${job.data.leadId}: ${job.failedReason}`
+      `❌ <b>Call failed</b> for lead #${job.data.leadId}\n\n${esc(job.failedReason ?? "Unknown error")}`,
+      { parse_mode: "HTML" }
     );
   });
 
-  console.log("All workers started");
+  log.info("workers_started");
 
   return [
     scrapeWorker,

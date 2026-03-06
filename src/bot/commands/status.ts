@@ -1,9 +1,21 @@
 import { BotContext } from "../bot.js";
 import { prisma } from "../../db/client.js";
 import { InlineKeyboard } from "grammy";
+import { logger } from "../../lib/logger.js";
+import { esc } from "../../lib/html.js";
+
+const log = logger.child({ module: "statusCommand" });
+
+const STATUS_BADGE: Record<string, string> = {
+  SCRAPING: "🟡 SCRAPING",
+  READY: "🟢 READY",
+  DONE: "✅ DONE",
+};
 
 export async function statusCommand(ctx: BotContext) {
   if (!ctx.from) return;
+
+  log.info({ telegramId: ctx.from.id }, "status_query");
 
   const user = await prisma.user.findUnique({
     where: { telegramId: ctx.from.id },
@@ -30,7 +42,7 @@ export async function statusCommand(ctx: BotContext) {
     return;
   }
 
-  let message = "Your Campaigns:\n\n";
+  let message = "📊 <b>Your Campaigns</b>\n";
 
   for (const campaign of campaigns) {
     const statusCounts = await prisma.lead.groupBy({
@@ -40,7 +52,7 @@ export async function statusCommand(ctx: BotContext) {
     });
 
     const countMap = Object.fromEntries(
-      statusCounts.map((s) => [s.status, s._count.status])
+      statusCounts.map((s: any) => [s.status, s._count.status])
     );
 
     const totalLeads = campaign._count.leads;
@@ -49,16 +61,18 @@ export async function statusCommand(ctx: BotContext) {
     const called = (countMap["CALLED"] ?? 0) + (countMap["RESPONDED"] ?? 0);
     const responded = countMap["RESPONDED"] ?? 0;
 
+    const badge = STATUS_BADGE[campaign.status] ?? campaign.status;
+
     message +=
-      `${campaign.niche} in ${campaign.city} [${campaign.status}]\n` +
-      `  Leads: ${totalLeads} | Sites: ${websitesBuilt} | ` +
-      `Emails: ${emailed} | Calls: ${called} | Responses: ${responded}\n\n`;
+      `\n${badge}\n` +
+      `<b>${esc(campaign.niche)}</b> in <b>${esc(campaign.city)}</b>\n` +
+      `👥 ${totalLeads} leads · 🌐 ${websitesBuilt} sites · 📧 ${emailed} emails · 📞 ${called} calls · 💬 ${responded} responses\n`;
   }
 
   const keyboard = new InlineKeyboard().text(
-    "Create New Campaign",
+    "🚀 Create New Campaign",
     "new_campaign"
   );
 
-  await ctx.reply(message, { reply_markup: keyboard });
+  await ctx.reply(message, { reply_markup: keyboard, parse_mode: "HTML" });
 }

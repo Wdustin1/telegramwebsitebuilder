@@ -2,6 +2,9 @@ import { Job } from "bullmq";
 import { prisma } from "../../db/client.js";
 import { generateWebsiteHtml } from "./generateHtml.js";
 import { deployToVercel } from "./deployVercel.js";
+import { logger } from "../../lib/logger.js";
+
+const log = logger.child({ module: "buildProcessor" });
 
 export interface BuildJobData {
   leadId: number;
@@ -10,7 +13,9 @@ export interface BuildJobData {
 }
 
 export async function processBuildJob(job: Job<BuildJobData>) {
-  const { leadId } = job.data;
+  const { leadId, campaignId } = job.data;
+
+  log.info({ leadId, campaignId, jobId: job.id }, "build_started");
 
   const lead = await prisma.lead.findUniqueOrThrow({
     where: { id: leadId },
@@ -24,6 +29,8 @@ export async function processBuildJob(job: Job<BuildJobData>) {
     phone: lead.phone,
     address: lead.address,
   });
+
+  log.info({ leadId }, "html_generated");
 
   // Include leadId in slug to prevent collisions between businesses with the same name.
   // e.g. "Smith Plumbing" in two different cities won't clobber each other on Vercel.
@@ -47,6 +54,8 @@ export async function processBuildJob(job: Job<BuildJobData>) {
     where: { id: leadId },
     data: { status: "WEBSITE_BUILT" },
   });
+
+  log.info({ leadId, vercelUrl }, "build_completed");
 
   return { leadId, vercelUrl };
 }

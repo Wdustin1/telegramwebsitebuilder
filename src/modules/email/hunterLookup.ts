@@ -1,4 +1,7 @@
 import { env } from "../../config/env.js";
+import { logger } from "../../lib/logger.js";
+
+const log = logger.child({ module: "hunterLookup" });
 
 interface HunterEmail {
   value: string;
@@ -27,23 +30,34 @@ export async function findEmailByDomain(
     url.searchParams.set("api_key", env.HUNTER_API_KEY);
     url.searchParams.set("limit", "5");
 
+    log.info({ domain }, "hunter_domain_search");
+
     const response = await fetch(url.toString());
-    if (!response.ok) return null;
+    if (!response.ok) {
+      log.warn({ domain, status: response.status }, "hunter_domain_search_failed");
+      return null;
+    }
 
     const data: HunterDomainResponse = await response.json();
     const emails = data.data?.emails ?? [];
-    if (emails.length === 0) return null;
+    if (emails.length === 0) {
+      log.info({ domain }, "hunter_domain_no_results");
+      return null;
+    }
 
     // Return the highest-confidence email
-    return emails.sort((a, b) => b.confidence - a.confidence)[0].value;
+    const best = emails.sort((a, b) => b.confidence - a.confidence)[0];
+    log.info({ domain, email: best.value, confidence: best.confidence }, "hunter_domain_found");
+    return best.value;
   } catch {
+    log.warn({ domain }, "hunter_domain_search_error");
     return null;
   }
 }
 
 /**
  * Search by company name only (lower reliability, used as fallback).
- * Hunter.io requires a confidence score ≥ 70 to be usable — below that
+ * Hunter.io requires a confidence score >= 70 to be usable — below that
  * we skip rather than send to a likely-wrong address.
  *
  * NOTE: For businesses without websites, success rate here will be low.
@@ -59,16 +73,26 @@ export async function findEmailByCompanyName(
     url.searchParams.set("company", company);
     url.searchParams.set("api_key", env.HUNTER_API_KEY);
 
+    log.info({ company }, "hunter_company_search");
+
     const response = await fetch(url.toString());
-    if (!response.ok) return null;
+    if (!response.ok) {
+      log.warn({ company, status: response.status }, "hunter_company_search_failed");
+      return null;
+    }
 
     const data: HunterFinderResponse = await response.json();
 
     // Only return if confidence is high enough to avoid spam/bounces
-    if (!data.data?.email || data.data.score < 70) return null;
+    if (!data.data?.email || data.data.score < 70) {
+      log.info({ company, score: data.data?.score ?? null }, "hunter_company_low_confidence");
+      return null;
+    }
 
+    log.info({ company, email: data.data.email, score: data.data.score }, "hunter_company_found");
     return data.data.email;
   } catch {
+    log.warn({ company }, "hunter_company_search_error");
     return null;
   }
 }
@@ -84,6 +108,7 @@ export async function findEmailByName(
   if (domain) {
     const email = await findEmailByDomain(domain);
     if (email) return email;
+    log.info({ businessName, domain }, "hunter_domain_fallback_to_company");
   }
 
   return findEmailByCompanyName(businessName);

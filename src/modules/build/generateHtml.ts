@@ -1,8 +1,11 @@
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 import { env } from "../../config/env.js";
+import { logger } from "../../lib/logger.js";
+
+const log = logger.child({ module: "generateHtml" });
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -15,7 +18,7 @@ export function escapeHtml(str: string): string {
     .replace(/'/g, "&#39;");
 }
 
-const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
 interface LeadData {
   businessName: string;
@@ -37,15 +40,16 @@ export async function generateWebsiteHtml(lead: LeadData): Promise<string> {
     "utf-8"
   );
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    response_format: { type: "json_object" },
+  log.debug({ businessName: lead.businessName }, "template_read");
+
+  log.info({ businessName: lead.businessName }, "anthropic_call_started");
+
+  const message = await anthropic.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 1024,
+    system:
+      "You generate website copy for local home service businesses. Return JSON only, no other text. JSON shape: { heroTagline: string (short punchy tagline), services: string[] (4-6 service names), aboutText: string (2-3 sentences about the business) }.",
     messages: [
-      {
-        role: "system",
-        content:
-          "You generate website copy for local home service businesses. Return JSON with: heroTagline (string, short punchy tagline), services (array of 4-6 service names), aboutText (string, 2-3 sentences about the business).",
-      },
       {
         role: "user",
         content: `Generate website copy for ${lead.businessName}, a ${lead.niche.toLowerCase()} in ${lead.city}.`,
@@ -53,9 +57,14 @@ export async function generateWebsiteHtml(lead: LeadData): Promise<string> {
     ],
   });
 
-  const copy: GeneratedCopy = JSON.parse(
-    completion.choices[0].message.content!
-  );
+  log.info({ businessName: lead.businessName }, "anthropic_call_completed");
+
+  let raw = (message.content[0] as { type: "text"; text: string }).text.trim();
+  // Strip markdown code fences if the model wraps the JSON
+  raw = raw.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
+  const copy: GeneratedCopy = JSON.parse(raw);
+
+  log.debug({ businessName: lead.businessName, servicesCount: copy.services.length }, "copy_parsed");
 
   const servicesHtml = copy.services
     .map((s) => `<li>${escapeHtml(s)}</li>`)

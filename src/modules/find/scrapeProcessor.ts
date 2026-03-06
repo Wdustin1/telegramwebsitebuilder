@@ -1,6 +1,9 @@
 import { Job } from "bullmq";
 import { prisma } from "../../db/client.js";
 import { scrapeGoogleMaps } from "./outscraper.js";
+import { logger } from "../../lib/logger.js";
+
+const log = logger.child({ module: "scrapeProcessor" });
 
 export interface ScrapeJobData {
   campaignId: number;
@@ -12,7 +15,11 @@ export interface ScrapeJobData {
 export async function processScrapeJob(job: Job<ScrapeJobData>) {
   const { campaignId, niche, city } = job.data;
 
+  log.info({ campaignId, niche, city, jobId: job.id }, "scrape_started");
+
   const results = await scrapeGoogleMaps(niche, city);
+
+  log.info({ campaignId, resultsCount: results.length }, "scrape_results_received");
 
   // Filter to businesses without websites and insert as leads
   const leadsToCreate = results.map((r) => ({
@@ -35,6 +42,8 @@ export async function processScrapeJob(job: Job<ScrapeJobData>) {
     where: { id: campaignId },
     data: { status: "READY" },
   });
+
+  log.info({ campaignId, totalFound: results.length, withoutWebsite: noWebsiteCount }, "scrape_completed");
 
   return { totalFound: results.length, withoutWebsite: noWebsiteCount };
 }

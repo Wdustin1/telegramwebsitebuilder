@@ -2,6 +2,10 @@ import { prisma } from "../db/client.js";
 import { EmailStatus } from "../generated/prisma/client.js";
 import { Bot } from "grammy";
 import { BotContext } from "../bot/bot.js";
+import { logger } from "../lib/logger.js";
+import { esc } from "../lib/html.js";
+
+const log = logger.child({ module: "sendgridWebhook" });
 
 let botInstance: Bot<BotContext>;
 
@@ -21,9 +25,13 @@ const statusMap: Record<string, EmailStatus> = {
 };
 
 export async function handleSendGridWebhook(events: SendGridEvent[]) {
+  log.info({ eventCount: events.length }, "sendgrid_webhook_received");
+
   for (const event of events) {
     const newStatus = statusMap[event.event];
     if (!newStatus) continue;
+
+    log.info({ eventType: event.event, email: event.email }, "sendgrid_event_processing");
 
     // Find email by recipient address and update status
     const emails = await prisma.email.findMany({
@@ -44,6 +52,8 @@ export async function handleSendGridWebhook(events: SendGridEvent[]) {
         data: { status: newStatus },
       });
 
+      log.info({ emailId: emails[0].id, newStatus: event.event }, "email_status_updated");
+
       // Notify user on email open (important lead signal)
       if (newStatus === EmailStatus.OPENED && botInstance) {
         const emailRecord = emails[0] as any;
@@ -52,10 +62,14 @@ export async function handleSendGridWebhook(events: SendGridEvent[]) {
         if (telegramId && businessName) {
           await botInstance.api.sendMessage(
             Number(telegramId),
-            `Email opened by ${businessName}! This is a warm lead - consider following up.`
+            `👀 <b>Email opened!</b>\n\n<b>${esc(businessName)}</b> opened your email — this is a warm lead. Consider following up!`,
+            { parse_mode: "HTML" }
           );
+          log.info({ businessName, telegramId: Number(telegramId) }, "email_open_notification_sent");
         }
       }
+    } else {
+      log.warn({ email: event.email, eventType: event.event }, "sendgrid_email_not_found");
     }
   }
 }

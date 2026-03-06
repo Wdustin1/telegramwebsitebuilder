@@ -2,6 +2,10 @@ import { prisma } from "../db/client.js";
 import { Bot } from "grammy";
 import { BotContext } from "../bot/bot.js";
 import { callQueue } from "../jobs/queues.js";
+import { logger } from "../lib/logger.js";
+import { esc } from "../lib/html.js";
+
+const log = logger.child({ module: "blandWebhook" });
 
 let botInstance: Bot<BotContext>;
 
@@ -18,12 +22,17 @@ interface BlandWebhookPayload {
 }
 
 export async function handleBlandWebhook(payload: BlandWebhookPayload) {
+  log.info({ callId: payload.call_id, status: payload.status }, "bland_webhook_received");
+
   const call = await prisma.call.findFirst({
     where: { blandCallId: payload.call_id },
     include: { lead: { include: { campaign: { include: { user: true } } } } },
   });
 
-  if (!call) return;
+  if (!call) {
+    log.warn({ callId: payload.call_id }, "bland_webhook_call_not_found");
+    return;
+  }
 
   const transcript = payload.transcripts
     ?.map((t) => `${t.user}: ${t.text}`)
@@ -41,6 +50,8 @@ export async function handleBlandWebhook(payload: BlandWebhookPayload) {
   ) {
     outcome = "INTERESTED";
   }
+
+  log.info({ callId: payload.call_id, leadId: call.leadId, outcome }, "call_outcome_determined");
 
   await prisma.call.update({
     where: { id: call.id },
@@ -61,6 +72,7 @@ export async function handleBlandWebhook(payload: BlandWebhookPayload) {
     const maxRetries = outcome === "VOICEMAIL" ? 1 : 2;
 
     if (callCount <= maxRetries) {
+      log.info({ leadId: call.leadId, outcome, callCount, maxRetries }, "call_retry_scheduled");
       await callQueue.add(
         `call-retry-${call.leadId}-${callCount}`,
         {
@@ -69,6 +81,8 @@ export async function handleBlandWebhook(payload: BlandWebhookPayload) {
         },
         { delay: 60 * 60 * 1000 } // 1 hour
       );
+    } else {
+      log.info({ leadId: call.leadId, outcome, callCount }, "call_max_retries_reached");
     }
   }
 
@@ -77,26 +91,33 @@ export async function handleBlandWebhook(payload: BlandWebhookPayload) {
       where: { id: call.leadId },
       data: { status: "RESPONDED" },
     });
+    log.info({ leadId: call.leadId }, "lead_marked_responded");
   }
 
   // Notify user via Telegram
   if (botInstance) {
     const telegramId = call.lead.campaign.user.telegramId;
-    const emoji =
-      outcome === "INTERESTED"
-        ? "HOT LEAD"
-        : outcome === "VOICEMAIL"
-          ? "Voicemail"
-          : outcome === "NO_ANSWER"
-            ? "No answer"
-            : "Not interested";
 
-    await botInstance.api.sendMessage(
-      Number(telegramId),
-      `Call result for ${call.lead.businessName}: ${emoji}\n` +
-        (outcome === "INTERESTED"
-          ? "They expressed interest! Follow up soon."
-          : "")
-    );
+    const outcomeDisplay: Record<string, string> = {
+      INTERESTED: "🔥 Interested",
+      VOICEMAIL: "📱 Voicemail",
+      NO_ANSWER: "📵 No answer",
+      NOT_INTERESTED: "👎 Not interested",
+    };
+
+    const label = outcomeDisplay[outcome] ?? outcome;
+
+    let message =
+      `📞 <b>Call result</b>\n\n` +
+      `<b>${esc(call.lead.businessName)}</b>: ${label}`;
+
+    if (outcome === "INTERESTED") {
+      message += `\n\n🔥 They expressed interest! Follow up soon.`;
+    }
+
+    await botInstance.api.sendMessage(Number(telegramId), message, {
+      parse_mode: "HTML",
+    });
+    log.info({ leadId: call.leadId, outcome, telegramId: Number(telegramId) }, "telegram_notification_sent");
   }
 }

@@ -3,6 +3,9 @@ import { prisma } from "../../db/client.js";
 import { makeCall } from "./blandClient.js";
 import { env } from "../../config/env.js";
 import { callQueue } from "../../jobs/queues.js";
+import { logger } from "../../lib/logger.js";
+
+const log = logger.child({ module: "callProcessor" });
 
 export interface CallJobData {
   leadId: number;
@@ -81,8 +84,14 @@ export function msUntilNextBusinessHour(): number {
 }
 
 export async function processCallJob(job: Job<CallJobData>) {
+  const { leadId } = job.data;
+
+  log.info({ leadId, jobId: job.id }, "call_job_started");
+
   if (!isBusinessHours()) {
     const delay = msUntilNextBusinessHour();
+
+    log.info({ leadId, delayMs: delay }, "call_delayed_outside_hours");
 
     // Re-queue with delay instead of using job.moveToDelayed() which requires
     // the worker token and can throw in BullMQ v5 when called inside a processor.
@@ -95,14 +104,13 @@ export async function processCallJob(job: Job<CallJobData>) {
     return { delayed: true, reason: "outside business hours", delayMs: delay };
   }
 
-  const { leadId } = job.data;
-
   const lead = await prisma.lead.findUniqueOrThrow({
     where: { id: leadId },
     include: { website: true, campaign: true },
   });
 
   if (!lead.phone) {
+    log.warn({ leadId }, "call_skipped_no_phone");
     return { called: false, reason: "no phone number" };
   }
 
@@ -111,6 +119,8 @@ export async function processCallJob(job: Job<CallJobData>) {
     `You built them a free website at ${lead.website?.vercelUrl ?? "our platform"}. ` +
     `Your goal is to let them know about the website and see if they'd like to keep it for a small monthly fee. ` +
     `Be friendly, professional, and brief. If they're not interested, thank them and end the call.`;
+
+  log.info({ leadId, phone: lead.phone }, "call_dispatching");
 
   const result = await makeCall({
     phoneNumber: lead.phone,
@@ -133,6 +143,8 @@ export async function processCallJob(job: Job<CallJobData>) {
     where: { id: leadId },
     data: { status: "CALLED" },
   });
+
+  log.info({ leadId, callId: result.call_id }, "call_dispatched");
 
   return { called: true, callId: result.call_id };
 }

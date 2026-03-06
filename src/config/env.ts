@@ -8,17 +8,18 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   REDIS_URL: z.string().min(1),
   OUTSCRAPER_API_KEY: z.string().min(1),
-  OPENAI_API_KEY: z.string().min(1),
+  ANTHROPIC_API_KEY: z.string().min(1),
   VERCEL_API_TOKEN: z.string().min(1),
   HUNTER_API_KEY: z.string().min(1),
   SENDGRID_API_KEY: z.string().min(1),
   SENDGRID_FROM_EMAIL: z.string().email(),
-  BLAND_API_KEY: z.string().min(1),
-  WEBHOOK_BASE_URL: z.string().url(),
+  BLAND_API_KEY: z.string().min(1).optional(),
+  WEBHOOK_BASE_URL: z.string().url().optional(),
   SENDGRID_WEBHOOK_VERIFICATION_KEY: z.string().min(1).optional(),
   BLAND_WEBHOOK_SECRET: z.string().min(1).optional(),
   // Timezone for business-hours enforcement on calls (e.g. "America/Chicago")
   CALL_TIMEZONE: z.string().min(1).optional(),
+  LOG_LEVEL: z.string().min(1).optional(),
 });
 
 export const env = envSchema.parse(process.env);

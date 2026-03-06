@@ -2,53 +2,64 @@ import { InlineKeyboard } from "grammy";
 import { BotConversation, BotContext } from "../bot.js";
 import { prisma } from "../../db/client.js";
 import { scrapeQueue } from "../../jobs/queues.js";
+import { logger } from "../../lib/logger.js";
+import { esc } from "../../lib/html.js";
 
-const NICHES = [
-  "Plumber",
-  "Roofer",
-  "HVAC",
-  "Pressure Washer",
-  "Electrician",
-  "Landscaper",
-  "Painter",
-  "Handyman",
+const log = logger.child({ module: "newCampaign" });
+
+const NICHES: { label: string; emoji: string }[] = [
+  { label: "Plumber", emoji: "🔧" },
+  { label: "Roofer", emoji: "🏠" },
+  { label: "HVAC", emoji: "❄️" },
+  { label: "Pressure Washer", emoji: "💦" },
+  { label: "Electrician", emoji: "⚡" },
+  { label: "Landscaper", emoji: "🌿" },
+  { label: "Painter", emoji: "🎨" },
+  { label: "Handyman", emoji: "🔨" },
 ];
 
 export async function newCampaignConversation(
   conversation: BotConversation,
   ctx: BotContext
 ) {
+  log.info({ telegramId: ctx.from?.id }, "conversation_started");
+
   // Step 1: Pick niche
   const nicheKeyboard = new InlineKeyboard();
   for (let i = 0; i < NICHES.length; i += 2) {
     const row = nicheKeyboard;
-    row.text(NICHES[i], `niche_${NICHES[i]}`);
-    if (NICHES[i + 1]) row.text(NICHES[i + 1], `niche_${NICHES[i + 1]}`);
+    row.text(`${NICHES[i].emoji} ${NICHES[i].label}`, `niche_${NICHES[i].label}`);
+    if (NICHES[i + 1]) row.text(`${NICHES[i + 1].emoji} ${NICHES[i + 1].label}`, `niche_${NICHES[i + 1].label}`);
     nicheKeyboard.row();
   }
 
-  await ctx.reply("What type of business do you want to target?", {
+  await ctx.reply("🎯 <b>What type of business do you want to target?</b>", {
     reply_markup: nicheKeyboard,
+    parse_mode: "HTML",
   });
 
   const nicheResponse = await conversation.waitForCallbackQuery(/^niche_/);
   const niche = nicheResponse.callbackQuery.data.replace("niche_", "");
   await nicheResponse.answerCallbackQuery();
-  await nicheResponse.editMessageText(`Niche selected: ${niche}`);
+  await nicheResponse.editMessageText(`✅ Niche selected: <b>${esc(niche)}</b>`, {
+    parse_mode: "HTML",
+  });
 
   // Step 2: Pick city
-  await ctx.reply("What city do you want to target? Type the city name:");
+  await ctx.reply("📍 <b>What city do you want to target?</b>\n\nType the city name:", {
+    parse_mode: "HTML",
+  });
   const cityResponse = await conversation.waitFor("message:text");
   const city = cityResponse.message.text.trim();
 
   // Step 3: Confirm
   const confirmKeyboard = new InlineKeyboard()
-    .text("Yes, start scraping", "confirm_campaign")
-    .text("Cancel", "cancel_campaign");
+    .text("✅ Yes, start scraping", "confirm_campaign")
+    .text("❌ Cancel", "cancel_campaign");
 
   await ctx.reply(
-    `Find ${niche.toLowerCase()}s in ${city} without websites?`,
-    { reply_markup: confirmKeyboard }
+    `🔍 Find <b>${esc(niche.toLowerCase())}s</b> in <b>${esc(city)}</b> without websites?`,
+    { reply_markup: confirmKeyboard, parse_mode: "HTML" }
   );
 
   const confirmResponse = await conversation.waitForCallbackQuery(
@@ -57,7 +68,7 @@ export async function newCampaignConversation(
   await confirmResponse.answerCallbackQuery();
 
   if (confirmResponse.callbackQuery.data === "cancel_campaign") {
-    await confirmResponse.editMessageText("Campaign cancelled.");
+    await confirmResponse.editMessageText("❌ Campaign cancelled.");
     return;
   }
 
@@ -86,9 +97,13 @@ export async function newCampaignConversation(
     },
   });
 
+  log.info({ campaignId: campaign.id, niche, city }, "campaign_created");
+
   await confirmResponse.editMessageText(
-    `Campaign created! Scraping ${niche.toLowerCase()}s in ${city}...\n` +
-      "I'll notify you when results are ready."
+    `🚀 <b>Campaign created!</b>\n\n` +
+      `Scraping <b>${esc(niche.toLowerCase())}s</b> in <b>${esc(city)}</b>…\n` +
+      `I'll notify you when results are ready.`,
+    { parse_mode: "HTML" }
   );
 
   await scrapeQueue.add("scrape-campaign", {
@@ -97,4 +112,6 @@ export async function newCampaignConversation(
     city,
     telegramId: ctx.from.id,
   });
+
+  log.info({ campaignId: campaign.id }, "scrape_job_queued");
 }

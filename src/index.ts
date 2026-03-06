@@ -1,4 +1,5 @@
 import { env } from "./config/env.js";
+import { logger } from "./lib/logger.js";
 import { createBot } from "./bot/bot.js";
 import { startCommand } from "./bot/commands/start.js";
 import { statusCommand } from "./bot/commands/status.js";
@@ -10,11 +11,16 @@ import {
   handleViewLeads,
   handleBuildWebsites,
   handleConfirmBuild,
+  handleToggleLead,
+  handleSelectAll,
+  handleSelectPage,
   handleStartEmails,
   handleConfirmEmails,
   handleStartCalls,
   handleConfirmCalls,
 } from "./bot/handlers/campaignActions.js";
+
+const log = logger.child({ module: "main" });
 
 async function main() {
   const bot = createBot();
@@ -39,6 +45,34 @@ async function main() {
     const campaignId = parseInt(ctx.match[1]);
     await ctx.answerCallbackQuery();
     await handleBuildWebsites(ctx, campaignId);
+  });
+
+  bot.callbackQuery(/^toggle_lead_(\d+)_(\d+)_(\d+)$/, async (ctx) => {
+    const leadId = parseInt(ctx.match[1]);
+    const campaignId = parseInt(ctx.match[2]);
+    const page = parseInt(ctx.match[3]);
+    await ctx.answerCallbackQuery();
+    await handleToggleLead(ctx, leadId, campaignId, page);
+  });
+
+  bot.callbackQuery(/^select_all_(\d+)_(\d+)$/, async (ctx) => {
+    const campaignId = parseInt(ctx.match[1]);
+    const page = parseInt(ctx.match[2]);
+    await ctx.answerCallbackQuery();
+    await handleSelectAll(ctx, campaignId, page);
+  });
+
+  bot.callbackQuery(/^select_page_(\d+)_(\d+)$/, async (ctx) => {
+    const campaignId = parseInt(ctx.match[1]);
+    const page = parseInt(ctx.match[2]);
+    await ctx.answerCallbackQuery();
+    await handleSelectPage(ctx, campaignId, page);
+  });
+
+  bot.callbackQuery(/^build_selected_(\d+)$/, async (ctx) => {
+    const campaignId = parseInt(ctx.match[1]);
+    await ctx.answerCallbackQuery();
+    await handleConfirmBuild(ctx, campaignId);
   });
 
   bot.callbackQuery(/^confirm_build_(\d+)$/, async (ctx) => {
@@ -82,11 +116,11 @@ async function main() {
   // Start webhook server
   setBlandWebhookBot(bot);
   setSendGridWebhookBot(bot);
-  const webhookServer = startWebhookServer(3000);
+  const webhookServer = startWebhookServer(3002);
 
   // Graceful shutdown
   async function shutdown() {
-    console.log("Shutting down gracefully...");
+    log.info("shutdown_started");
     bot.stop();
     for (const worker of workers) {
       await worker.close();
@@ -94,7 +128,7 @@ async function main() {
     webhookServer.close();
     const { prisma } = await import("./db/client.js");
     await prisma.$disconnect();
-    console.log("Shutdown complete");
+    log.info("shutdown_complete");
     process.exit(0);
   }
 
@@ -103,7 +137,10 @@ async function main() {
 
   // Start bot
   bot.start();
-  console.log("Bot is running...");
+  log.info("bot_started");
 }
 
-main().catch(console.error);
+main().catch((err) => {
+  log.fatal({ err }, "uncaught_error");
+  process.exit(1);
+});
