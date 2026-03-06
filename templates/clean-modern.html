@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{BUSINESS_NAME}} | {{NICHE}} in {{CITY}}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --dark: #0f172a;
+      --indigo: #4f46e5;
+      --indigo-light: #6366f1;
+      --teal: #0d9488;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --light: #f8fafc;
+    }
+    body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; color: var(--text); background: #fff; }
+
+    /* NAV / TOP BAR */
+    .topbar {
+      background: var(--dark);
+      padding: 12px 24px;
+      display: flex; justify-content: center; align-items: center;
+      gap: 8px;
+    }
+    .topbar span { color: rgba(255,255,255,0.7); font-size: 0.85rem; }
+    .topbar a { color: white; font-weight: 700; font-size: 0.85rem; text-decoration: none; }
+
+    /* HERO */
+    .hero {
+      padding: 100px 24px 90px;
+      text-align: center;
+      background: var(--light);
+      border-bottom: 1px solid var(--border);
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; top: -100px; left: 50%; transform: translateX(-50%);
+      width: 800px; height: 800px;
+      background: radial-gradient(circle, rgba(79,70,229,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-label {
+      display: inline-block;
+      background: rgba(79,70,229,0.08);
+      color: var(--indigo);
+      font-size: 0.8rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      padding: 5px 16px; border-radius: 999px;
+      margin-bottom: 28px;
+    }
+    .hero h1 {
+      font-size: clamp(2.4rem, 6vw, 4.2rem);
+      font-weight: 900; line-height: 1.05;
+      letter-spacing: -0.04em; margin-bottom: 22px;
+      color: var(--dark);
+    }
+    .hero-tagline {
+      font-size: clamp(1rem, 2.5vw, 1.3rem);
+      color: var(--muted); max-width: 540px;
+      margin: 0 auto 48px; line-height: 1.65;
+    }
+    .hero-cta {
+      display: inline-block;
+      background: var(--indigo); color: white;
+      padding: 18px 44px; border-radius: 10px;
+      text-decoration: none; font-weight: 800; font-size: 1.05rem;
+      box-shadow: 0 6px 32px rgba(79,70,229,0.4);
+      transition: background 0.2s, transform 0.15s;
+    }
+    .hero-cta:hover { background: var(--indigo-light); transform: translateY(-3px); }
+
+    /* TRUST BAR */
+    .trust-bar {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 24px;
+      display: flex; justify-content: center; align-items: center;
+      gap: 44px; flex-wrap: wrap;
+    }
+    .trust-bar span {
+      color: var(--muted); font-weight: 600; font-size: 0.88rem;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .trust-bar span::before { content: '✓'; color: var(--teal); font-weight: 800; font-size: 1rem; }
+
+    /* SERVICES */
+    .services { padding: 80px 24px; max-width: 1040px; margin: 0 auto; }
+    .section-eyebrow {
+      text-align: center; font-size: 0.8rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--indigo); margin-bottom: 10px;
+    }
+    .section-title {
+      text-align: center;
+      font-size: clamp(1.7rem, 3.5vw, 2.5rem);
+      font-weight: 800; letter-spacing: -0.02em;
+      margin-bottom: 48px;
+    }
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 16px; list-style: none;
+    }
+    .services-grid li {
+      border: 1px solid var(--border);
+      padding: 24px 20px; border-radius: 12px;
+      font-weight: 600; font-size: 0.97rem;
+      display: flex; align-items: center; gap: 12px;
+      transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+    }
+    .services-grid li::before { content: '✨'; flex-shrink: 0; }
+    .services-grid li:hover {
+      border-color: var(--indigo);
+      box-shadow: 0 4px 20px rgba(79,70,229,0.1);
+      transform: translateY(-3px);
+    }
+
+    /* FEATURES */
+    .features { padding: 80px 24px; background: var(--dark); }
+    .features-inner { max-width: 1000px; margin: 0 auto; }
+    .features-title {
+      text-align: center; color: white;
+      font-size: clamp(1.7rem, 3.5vw, 2.3rem);
+      font-weight: 800; letter-spacing: -0.02em;
+      margin-bottom: 48px;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 24px;
+    }
+    .feature {
+      padding: 28px 24px; border-radius: 12px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .feature-icon { font-size: 2rem; margin-bottom: 14px; }
+    .feature h3 { color: white; font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+    .feature p { color: rgba(255,255,255,0.55); font-size: 0.87rem; line-height: 1.6; }
+
+    /* ABOUT */
+    .about { padding: 80px 24px; max-width: 760px; margin: 0 auto; text-align: center; }
+    .about h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 800; margin-bottom: 22px; }
+    .about p { font-size: 1.1rem; line-height: 1.85; color: var(--muted); margin-bottom: 40px; }
+    .about-cta {
+      display: inline-block;
+      border: 2px solid var(--indigo); color: var(--indigo);
+      padding: 14px 34px; border-radius: 8px;
+      text-decoration: none; font-weight: 700;
+      transition: background 0.2s, color 0.2s;
+    }
+    .about-cta:hover { background: var(--indigo); color: white; }
+
+    /* CONTACT */
+    .contact { padding: 80px 24px; max-width: 680px; margin: 0 auto; text-align: center; }
+    .contact h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 800; margin-bottom: 32px; }
+    .contact-card {
+      background: var(--light);
+      border: 1px solid var(--border);
+      border-radius: 16px; padding: 44px 36px;
+    }
+    .contact-phone {
+      display: block; font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 900; color: var(--dark);
+      text-decoration: none; letter-spacing: -0.03em;
+      margin-bottom: 8px;
+    }
+    .contact-phone:hover { color: var(--indigo); }
+    .contact-address { color: var(--muted); font-size: 0.95rem; margin-top: 6px; }
+    .contact-cta {
+      display: inline-block;
+      background: var(--indigo); color: white;
+      padding: 16px 38px; border-radius: 8px;
+      text-decoration: none; font-weight: 800; font-size: 1rem;
+      margin-top: 28px;
+      box-shadow: 0 4px 20px rgba(79,70,229,0.3);
+    }
+
+    footer {
+      background: var(--dark); color: rgba(255,255,255,0.4);
+      text-align: center; padding: 24px 16px; font-size: 0.82rem;
+    }
+    footer strong { color: rgba(255,255,255,0.7); }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <span>Call us today:</span>
+    <a href="tel:{{PHONE}}">{{PHONE}}</a>
+  </div>
+
+  <div class="hero">
+    <div class="hero-label">{{NICHE}} · {{CITY}}</div>
+    <h1>{{BUSINESS_NAME}}</h1>
+    <p class="hero-tagline">{{HERO_TAGLINE}}</p>
+    <a href="tel:{{PHONE}}" class="hero-cta">{{CALL_TO_ACTION}} — {{PHONE}}</a>
+  </div>
+
+  <div class="trust-bar">
+    <span>{{TRUST_BADGE_1}}</span>
+    <span>{{TRUST_BADGE_2}}</span>
+    <span>{{TRUST_BADGE_3}}</span>
+  </div>
+
+  <section class="services">
+    <p class="section-eyebrow">Services</p>
+    <h2 class="section-title">{{NICHE}} Services in {{CITY}}</h2>
+    <ul class="services-grid">{{SERVICES_LIST}}</ul>
+  </section>
+
+  <section class="features">
+    <div class="features-inner">
+      <h2 class="features-title">What Makes Us Different</h2>
+      <div class="features-grid">
+        <div class="feature">
+          <div class="feature-icon">💬</div>
+          <h3>Clear Communication</h3>
+          <p>We keep you informed every step of the way — no surprises, no runaround.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">🎯</div>
+          <h3>Quality Results</h3>
+          <p>We take pride in our craft. Every job is finished to a high standard, every time.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">⏱️</div>
+          <h3>On Time, On Budget</h3>
+          <p>We respect your schedule and your money. No delays, no hidden charges.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">🤝</div>
+          <h3>Local & Reliable</h3>
+          <p>We're your neighbors. Our reputation in {{CITY}} is everything to us.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="about">
+    <h2>About {{BUSINESS_NAME}}</h2>
+    <p>{{ABOUT_TEXT}}</p>
+    <a href="tel:{{PHONE}}" class="about-cta">Request a Free Quote</a>
+  </section>
+
+  <section class="contact">
+    <h2>Get Your Free Quote</h2>
+    <div class="contact-card">
+      <a href="tel:{{PHONE}}" class="contact-phone">{{PHONE}}</a>
+      <p class="contact-address">📍 {{ADDRESS}}</p>
+      <a href="tel:{{PHONE}}" class="contact-cta">Call Now — Free Estimate</a>
+    </div>
+  </section>
+
+  <footer>
+    <strong>{{BUSINESS_NAME}}</strong> &nbsp;·&nbsp; {{NICHE}} &nbsp;·&nbsp; {{CITY}} &nbsp;·&nbsp; {{PHONE}}
+  </footer>
+
+</body>
+</html>

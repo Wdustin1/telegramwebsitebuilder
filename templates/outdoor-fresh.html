@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{BUSINESS_NAME}} | Landscaping in {{CITY}}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --green-dark: #1b4332;
+      --green: #2d6a4f;
+      --green-mid: #40916c;
+      --green-light: #74c69d;
+      --accent: #52b788;
+      --accent2: #1b4332;
+      --text: #1b2e24;
+      --muted: #557a65;
+      --light: #f0faf5;
+    }
+    body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; color: var(--text); background: #fff; }
+
+    /* HERO */
+    .hero {
+      background: linear-gradient(150deg, var(--green-dark) 0%, var(--green) 50%, var(--green-mid) 100%);
+      color: white;
+      padding: 100px 24px 90px;
+      text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .hero::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 90% 60% at 50% 120%, rgba(116,198,157,0.2) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: white;
+      font-size: 0.8rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      padding: 6px 18px; border-radius: 999px;
+      margin-bottom: 28px;
+    }
+    .hero h1 {
+      font-size: clamp(2.2rem, 6vw, 4rem);
+      font-weight: 900; line-height: 1.05;
+      letter-spacing: -0.03em; margin-bottom: 20px;
+    }
+    .hero-tagline {
+      font-size: clamp(1rem, 2.5vw, 1.3rem);
+      opacity: 0.87; max-width: 560px;
+      margin: 0 auto 44px; line-height: 1.65;
+    }
+    .hero-cta {
+      display: inline-block;
+      background: white; color: var(--green-dark);
+      padding: 18px 44px; border-radius: 10px;
+      text-decoration: none; font-weight: 800; font-size: 1.05rem;
+      box-shadow: 0 6px 32px rgba(0,0,0,0.2);
+      transition: background 0.2s, transform 0.15s;
+    }
+    .hero-cta:hover { background: var(--light); transform: translateY(-3px); }
+
+    /* TRUST BAR */
+    .trust-bar {
+      background: var(--green-dark);
+      padding: 15px 24px;
+      display: flex; justify-content: center; align-items: center;
+      gap: 36px; flex-wrap: wrap;
+    }
+    .trust-bar span {
+      color: var(--green-light); font-weight: 600; font-size: 0.88rem;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .trust-bar span::before { content: '🌿'; font-size: 1rem; }
+
+    /* SERVICES */
+    .services { padding: 80px 24px; max-width: 1040px; margin: 0 auto; }
+    .section-eyebrow {
+      text-align: center; font-size: 0.8rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--green-mid); margin-bottom: 10px;
+    }
+    .section-title {
+      text-align: center;
+      font-size: clamp(1.7rem, 3.5vw, 2.5rem);
+      font-weight: 800; letter-spacing: -0.02em;
+      margin-bottom: 48px; color: var(--text);
+    }
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px; list-style: none;
+    }
+    .services-grid li {
+      background: var(--light);
+      border-left: 4px solid var(--accent);
+      padding: 22px 20px; border-radius: 8px;
+      font-weight: 600; font-size: 0.97rem; color: var(--text);
+      display: flex; align-items: center; gap: 10px;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .services-grid li::before { content: '🌿'; flex-shrink: 0; }
+    .services-grid li:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(29,75,50,0.1); }
+
+    /* PROMISE */
+    .promise { padding: 80px 24px; background: var(--light); }
+    .promise-inner { max-width: 900px; margin: 0 auto; }
+    .promise-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 24px;
+    }
+    .promise-card {
+      background: white; border-radius: 14px;
+      padding: 32px 24px; text-align: center;
+      box-shadow: 0 2px 20px rgba(29,75,50,0.06);
+      transition: transform 0.15s;
+    }
+    .promise-card:hover { transform: translateY(-4px); }
+    .promise-icon { font-size: 2.4rem; margin-bottom: 14px; }
+    .promise-card h3 { font-size: 1.05rem; font-weight: 700; color: var(--green-dark); margin-bottom: 8px; }
+    .promise-card p { font-size: 0.88rem; color: var(--muted); line-height: 1.6; }
+
+    /* ABOUT */
+    .about {
+      background: linear-gradient(135deg, var(--green-dark), var(--green));
+      color: white;
+      padding: 80px 24px; text-align: center;
+    }
+    .about-inner { max-width: 720px; margin: 0 auto; }
+    .about h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 800; margin-bottom: 22px; }
+    .about p { font-size: 1.1rem; line-height: 1.85; opacity: 0.86; margin-bottom: 40px; }
+    .about-link {
+      display: inline-block;
+      border: 2px solid rgba(255,255,255,0.6); color: white;
+      padding: 14px 34px; border-radius: 8px;
+      text-decoration: none; font-weight: 700;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .about-link:hover { background: rgba(255,255,255,0.15); border-color: white; }
+
+    /* CONTACT */
+    .contact { padding: 80px 24px; max-width: 680px; margin: 0 auto; text-align: center; }
+    .contact h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 800; margin-bottom: 32px; }
+    .contact-card {
+      background: var(--light); border-radius: 16px;
+      padding: 44px 36px;
+      box-shadow: 0 4px 40px rgba(29,75,50,0.08);
+    }
+    .contact-phone {
+      display: block; font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 900; color: var(--green-dark);
+      text-decoration: none; letter-spacing: -0.03em;
+      margin-bottom: 8px;
+    }
+    .contact-phone:hover { color: var(--green-mid); }
+    .contact-address { color: var(--muted); font-size: 0.95rem; margin-top: 6px; }
+    .contact-cta {
+      display: inline-block;
+      background: var(--green); color: white;
+      padding: 16px 38px; border-radius: 8px;
+      text-decoration: none; font-weight: 800; font-size: 1rem;
+      margin-top: 28px;
+      box-shadow: 0 4px 20px rgba(45,106,79,0.35);
+    }
+
+    footer {
+      background: var(--green-dark); color: rgba(255,255,255,0.45);
+      text-align: center; padding: 24px 16px; font-size: 0.82rem;
+    }
+    footer strong { color: rgba(255,255,255,0.75); }
+  </style>
+</head>
+<body>
+
+  <div class="hero">
+    <div class="hero-badge">🌿 Free Estimates Available</div>
+    <h1>{{BUSINESS_NAME}}</h1>
+    <p class="hero-tagline">{{HERO_TAGLINE}}</p>
+    <a href="tel:{{PHONE}}" class="hero-cta">{{CALL_TO_ACTION}} — {{PHONE}}</a>
+  </div>
+
+  <div class="trust-bar">
+    <span>{{TRUST_BADGE_1}}</span>
+    <span>{{TRUST_BADGE_2}}</span>
+    <span>{{TRUST_BADGE_3}}</span>
+  </div>
+
+  <section class="services">
+    <p class="section-eyebrow">What We Offer</p>
+    <h2 class="section-title">Landscaping Services in {{CITY}}</h2>
+    <ul class="services-grid">{{SERVICES_LIST}}</ul>
+  </section>
+
+  <section class="promise">
+    <div class="promise-inner">
+      <p class="section-eyebrow" style="text-align:center">Our Promise</p>
+      <h2 class="section-title">Why {{CITY}} Homeowners Choose Us</h2>
+      <div class="promise-cards">
+        <div class="promise-card">
+          <div class="promise-icon">📐</div>
+          <h3>Custom Designs</h3>
+          <p>Every property is unique. We tailor each project to your space and vision.</p>
+        </div>
+        <div class="promise-card">
+          <div class="promise-icon">📅</div>
+          <h3>Reliable Scheduling</h3>
+          <p>We show up when we say we will. Your time and property are respected.</p>
+        </div>
+        <div class="promise-card">
+          <div class="promise-icon">💵</div>
+          <h3>Upfront Pricing</h3>
+          <p>No hidden fees. You get a clear quote before any work begins.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="about">
+    <div class="about-inner">
+      <h2>About {{BUSINESS_NAME}}</h2>
+      <p>{{ABOUT_TEXT}}</p>
+      <a href="tel:{{PHONE}}" class="about-link">Get a Free Estimate</a>
+    </div>
+  </section>
+
+  <section class="contact">
+    <h2>Let's Talk About Your Yard</h2>
+    <div class="contact-card">
+      <a href="tel:{{PHONE}}" class="contact-phone">{{PHONE}}</a>
+      <p class="contact-address">📍 {{ADDRESS}}</p>
+      <a href="tel:{{PHONE}}" class="contact-cta">Call for a Free Quote</a>
+    </div>
+  </section>
+
+  <footer>
+    <strong>{{BUSINESS_NAME}}</strong> &nbsp;·&nbsp; Landscaping in {{CITY}} &nbsp;·&nbsp; {{PHONE}}
+  </footer>
+
+</body>
+</html>
