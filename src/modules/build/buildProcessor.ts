@@ -28,6 +28,11 @@ export async function processBuildJob(job: Job<BuildJobData>) {
     city: lead.campaign.city,
     phone: lead.phone,
     address: lead.address,
+    rating: lead.rating ?? undefined,
+    reviewCount: lead.reviewCount ?? undefined,
+    description: lead.description ?? undefined,
+    category: lead.category ?? undefined,
+    reviewSnippets: (lead.reviewSnippets as Array<{ text: string; rating: number | null; author: string | null }> | null) ?? undefined,
   });
 
   log.info({ leadId }, "html_generated");

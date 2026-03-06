@@ -3,12 +3,24 @@ import { logger } from "../../lib/logger.js";
 
 const log = logger.child({ module: "outscraper" });
 
+export interface OutscraperReview {
+  review_text?: string;
+  review_rating?: number;
+  author_title?: string;
+}
+
 export interface OutscraperResult {
   name: string;
   phone?: string;
   full_address?: string;
   site?: string;
-  email?: string; // Outscraper sometimes includes email directly
+  email?: string;         // Outscraper sometimes includes email directly
+  rating?: number;        // Google star rating, e.g. 4.8
+  reviews?: number;       // Total review count
+  description?: string;   // Business description from Google profile
+  type?: string;          // Primary business category
+  photo?: string;         // Main listing photo URL
+  reviews_data?: OutscraperReview[]; // Most recent reviews
 }
 
 interface OutscraperTaskResponse {

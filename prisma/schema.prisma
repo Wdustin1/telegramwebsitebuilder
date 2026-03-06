@@ -38,19 +38,26 @@ enum CampaignStatus {
 }
 
 model Lead {
-  id           Int        @id @default(autoincrement())
-  campaignId   Int        @map("campaign_id")
-  businessName String     @map("business_name")
-  phone        String?
-  address      String?
-  hasWebsite   Boolean    @default(false) @map("has_website")
-  ownerEmail   String?    @map("owner_email")
-  status       LeadStatus @default(NEW)
-  createdAt    DateTime   @default(now()) @map("created_at")
-  campaign     Campaign   @relation(fields: [campaignId], references: [id])
-  website      Website?
-  emails       Email[]
-  calls        Call[]
+  id              Int        @id @default(autoincrement())
+  campaignId      Int        @map("campaign_id")
+  businessName    String     @map("business_name")
+  phone           String?
+  address         String?
+  hasWebsite      Boolean    @default(false) @map("has_website")
+  ownerEmail      String?    @map("owner_email")
+  status          LeadStatus @default(NEW)
+  createdAt       DateTime   @default(now()) @map("created_at")
+  // Enrichment data from Outscraper / Google Maps
+  rating          Float?                       // Google star rating (e.g. 4.8)
+  reviewCount     Int?       @map("review_count") // Total review count
+  description     String?    @db.Text          // Business description from Google
+  category        String?                      // Primary business category
+  photoUrl        String?    @map("photo_url") // Main listing photo URL
+  reviewSnippets  Json?      @map("review_snippets") // Top 3 reviews [{text, rating, author}]
+  campaign        Campaign   @relation(fields: [campaignId], references: [id])
+  website         Website?
+  emails          Email[]
+  calls           Call[]
 
   @@map("leads")
 }

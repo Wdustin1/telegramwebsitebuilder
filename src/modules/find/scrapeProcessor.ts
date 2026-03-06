@@ -22,14 +22,33 @@ export async function processScrapeJob(job: Job<ScrapeJobData>) {
   log.info({ campaignId, resultsCount: results.length }, "scrape_results_received");
 
   // Filter to businesses without websites and insert as leads
-  const leadsToCreate = results.map((r) => ({
-    campaignId,
-    businessName: r.name,
-    phone: r.phone ?? null,
-    address: r.full_address ?? null,
-    hasWebsite: !!r.site,
-    status: "NEW" as const,
-  }));
+  const leadsToCreate = results.map((r) => {
+    // Pull top 3 review snippets with enough text to be useful
+    const snippets =
+      r.reviews_data
+        ?.filter((rv) => rv.review_text && rv.review_text.trim().length > 25)
+        .slice(0, 3)
+        .map((rv) => ({
+          text: rv.review_text!.trim(),
+          rating: rv.review_rating ?? null,
+          author: rv.author_title ?? null,
+        })) ?? null;
+
+    return {
+      campaignId,
+      businessName: r.name,
+      phone: r.phone ?? null,
+      address: r.full_address ?? null,
+      hasWebsite: !!r.site,
+      rating: r.rating ?? null,
+      reviewCount: r.reviews ?? null,
+      description: r.description ?? null,
+      category: r.type ?? null,
+      photoUrl: r.photo ?? null,
+      reviewSnippets: snippets,
+      status: "NEW" as const,
+    };
+  });
 
   // skipDuplicates prevents duplicate leads if a scrape job retries
   await prisma.lead.createMany({ data: leadsToCreate, skipDuplicates: true });
